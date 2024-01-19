@@ -1,3 +1,4 @@
+type Stack a = [a]
 data Prop = Const Bool
             | Var Char
             | Not Prop
@@ -8,6 +9,16 @@ data Prop = Const Bool
 
 type Assoc k v = [(k,v)]
 type Subst = Assoc Char Bool
+
+push :: Stack a -> a -> Stack a 
+push s a = a : s 
+
+pop :: Stack a -> a 
+pop s = head s
+
+isEmpty :: Stack a -> Bool 
+isEmpty s = null s
+
 
 find :: Eq k => k -> Assoc k v -> v
 find k a = head [v | (k',v) <- a, k == k']
@@ -53,3 +64,4 @@ truthTable :: Prop -> [([Bool],Bool)]
 truthTable p = [(i,eval (zip l i) p)|i<-bools(length l)]
                 where l = rmdups (vars p)
 
+ParseExpression :: String -> Stack Char
