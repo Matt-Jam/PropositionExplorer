@@ -1,3 +1,5 @@
+import Data.Char (isAlpha)
+data PropConstructors = UnaryFunction (Prop -> Prop) | BinaryFunction (Prop -> Prop -> Prop)
 type Stack a = [a]
 data Prop = Const Bool
             | Var Char
@@ -10,21 +12,40 @@ data Prop = Const Bool
 type Assoc k v = [(k,v)]
 type Subst = Assoc Char Bool
 
-push :: Stack a -> a -> Stack a 
-push s a = a : s 
+operatorMapping :: Assoc Char PropConstructors
+operatorMapping = [('+',BinaryFunction Or),('*', BinaryFunction And),('-',UnaryFunction Not)]
 
-pop :: Stack a -> a 
+operators :: Assoc Char Int
+operators = [('*',2),('+',1),('-',3)]
+
+push :: Stack a -> a -> Stack a
+push s a = a : s
+
+pop :: Stack a -> a
 pop s = head s
 
-isEmpty :: Stack a -> Bool 
+isEmpty :: Stack a -> Bool
 isEmpty s = null s
-
 
 find :: Eq k => k -> Assoc k v -> v
 find k a = head [v | (k',v) <- a, k == k']
 
 p1 :: Prop
-p1 = Or (Var 'a') (Var 'c')
+p1 = And (Const True) (Or (Const False) (Not (Not (Var 'c'))))
+
+simplify :: Prop -> Prop
+simplify (Const b) = Const b
+simplify (Var x) =  Var x
+simplify (Not (Not p)) = simplify p
+simplify (And (Const True) p) = simplify p
+simplify (And p (Const True)) =  simplify p
+simplify (Or p (Const False)) = simplify p
+simplify (Or (Const False) p) = simplify p
+simplify (Not p) = simplify p
+simplify (And p p') = And (simplify p) (simplify p')
+simplify (Or p p') = Or (simplify p) (simplify p')
+simplify (Imply p p') = Imply (simplify p) (simplify p')
+simplify (Equiv p p') = Equiv (simplify p) (simplify p')
 
 eval :: Subst -> Prop -> Bool
 eval _ (Const b) = b
@@ -61,7 +82,44 @@ isTaut :: Prop -> Bool
 isTaut p = and [eval s p | s <- substs p]
 
 truthTable :: Prop -> [([Bool],Bool)]
-truthTable p = [(i,eval (zip l i) p)|i<-bools(length l)]
+truthTable p = [(i,eval (zip l i) p)|i<-bools (length l)]
                 where l = rmdups (vars p)
 
-ParseExpression :: String -> Stack Char
+isOperator :: Char -> Bool
+isOperator c = length (filter (\(k,v) -> k == c) operators) > 0
+
+handleOperator :: Char -> Stack Char -> Stack Char -> (Stack Char, Stack Char)
+handleOperator c [] out = ([c],out)
+handleOperator c (op:ops) out
+    | op == '(' = (c:op:ops,out)
+    | find c operators <= find op operators = handleOperator c ops (op:out)
+    | otherwise = (c:op:ops,out)
+
+handleRightBracket :: Stack Char -> Stack Char -> (Stack Char, Stack Char)
+handleRightBracket ('(':ops) out = (ops,out)
+handleRightBracket (op:ops) out = handleRightBracket ops (op:out)
+
+handleChar:: Char -> Stack Char -> Stack Char -> (Stack Char, Stack Char)
+handleChar c op out
+    | c == '(' = (c:op,out)
+    | isOperator c = handleOperator c op out
+    | c == ')' = handleRightBracket op out
+    | isAlpha c = (op,c:out)
+    | otherwise = (op,out)
+
+
+parseExpression :: String -> Stack Char -> Stack Char -> Stack Char
+parseExpression [] [] out = out
+parseExpression [] (op:ops) out = parseExpression [] ops (op : out)
+parseExpression (c:s) op out = uncurry (parseExpression s) (handleChar c op out)
+
+constructProp :: Char -> Stack Prop -> Stack Prop
+constructProp c ps = case find c operatorMapping of
+    UnaryFunction f -> f (head ps) : tail ps
+    BinaryFunction f -> f (head(tail ps)) (head ps) : tail (tail ps)
+
+convertParsedExpression :: Stack Char -> Stack Prop -> Prop
+convertParsedExpression [] ps = head ps
+convertParsedExpression (c:cs) ps
+    | isOperator c = convertParsedExpression cs (constructProp c ps)
+    | otherwise = convertParsedExpression cs (Var c : ps)
