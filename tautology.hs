@@ -8,6 +8,7 @@ data Prop = Const Bool
             | Imply Prop Prop
             | Or Prop Prop
             | Equiv Prop Prop
+            deriving (Eq, Show)
 
 type Assoc k v = [(k,v)]
 type Subst = Assoc Char Bool
