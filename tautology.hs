@@ -22,16 +22,22 @@ push :: Stack a -> a -> Stack a
 push s a = a : s
 
 pop :: Stack a -> a
-pop s = head s
+pop = head
 
 isEmpty :: Stack a -> Bool
-isEmpty s = null s
+isEmpty = null
 
 find :: Eq k => k -> Assoc k v -> v
 find k a = head [v | (k',v) <- a, k == k']
 
 p1 :: Prop
 p1 = And (Const True) (Or (Const False) (Not (Not (Var 'c'))))
+
+reduce :: Prop -> Prop 
+reduce p 
+    | isTaut p = Const True 
+    | isContradiction p = Const False
+    | otherwise = simplify p
 
 simplify :: Prop -> Prop
 simplify (Const b) = Const b
@@ -47,7 +53,7 @@ simplify (And (Const False) p) = Const False
 simplify (And p (Const False)) =  Const False
 simplify (Or p (Const True)) = Const True
 simplify (Or (Const True) p) = Const True
-simplify (Not p) = simplify p
+simplify (Not p) = Not (simplify p)
 simplify (And p p') = And (simplify p) (simplify p')
 simplify (Or p p') = Or (simplify p) (simplify p')
 simplify (Imply p p') = Imply (simplify p) (simplify p')
@@ -87,6 +93,9 @@ substs p = map (zip l) (bools (length l))
 isTaut :: Prop -> Bool
 isTaut p = and [eval s p | s <- substs p]
 
+isContradiction :: Prop -> Bool 
+isContradiction p = not (or [eval s p | s <- substs p])
+
 truthTable :: Prop -> [([Bool],Bool)]
 truthTable p = [(i,eval (zip l i) p)|i<-bools (length l)]
                 where l = rmdups (vars p)
@@ -121,8 +130,8 @@ parseExpression (c:s) op out = uncurry (parseExpression s) (handleChar c op out)
 
 constructProp :: Char -> Stack Prop -> Stack Prop
 constructProp c ps = case find c operatorMapping of
-    UnaryFunction f -> simplify (f (head ps)) : tail ps
-    BinaryFunction f -> simplify (f (head (tail ps)) (head ps)) : tail (tail ps)
+    UnaryFunction f ->  reduce (f (head ps)) : tail ps
+    BinaryFunction f ->  reduce (f (head (tail ps)) (head ps)) : tail (tail ps)
 
 convertParsedExpression :: Stack Char -> Stack Prop -> Prop
 convertParsedExpression [] ps = head ps
