@@ -37,10 +37,16 @@ simplify :: Prop -> Prop
 simplify (Const b) = Const b
 simplify (Var x) =  Var x
 simplify (Not (Not p)) = simplify p
+simplify (Not (Const True)) = Const False
+simplify (Not (Const False)) = Const True
 simplify (And (Const True) p) = simplify p
 simplify (And p (Const True)) =  simplify p
 simplify (Or p (Const False)) = simplify p
 simplify (Or (Const False) p) = simplify p
+simplify (And (Const False) p) = Const False
+simplify (And p (Const False)) =  Const False
+simplify (Or p (Const True)) = Const True
+simplify (Or (Const True) p) = Const True
 simplify (Not p) = simplify p
 simplify (And p p') = And (simplify p) (simplify p')
 simplify (Or p p') = Or (simplify p) (simplify p')
@@ -86,7 +92,7 @@ truthTable p = [(i,eval (zip l i) p)|i<-bools (length l)]
                 where l = rmdups (vars p)
 
 isOperator :: Char -> Bool
-isOperator c = length (filter (\(k,v) -> k == c) operators) > 0
+isOperator c = any (\(k,v) -> k == c) operators
 
 handleOperator :: Char -> Stack Char -> Stack Char -> (Stack Char, Stack Char)
 handleOperator c [] out = ([c],out)
@@ -115,11 +121,13 @@ parseExpression (c:s) op out = uncurry (parseExpression s) (handleChar c op out)
 
 constructProp :: Char -> Stack Prop -> Stack Prop
 constructProp c ps = case find c operatorMapping of
-    UnaryFunction f -> f (head ps) : tail ps
-    BinaryFunction f -> f (head(tail ps)) (head ps) : tail (tail ps)
+    UnaryFunction f -> simplify (f (head ps)) : tail ps
+    BinaryFunction f -> simplify (f (head (tail ps)) (head ps)) : tail (tail ps)
 
 convertParsedExpression :: Stack Char -> Stack Prop -> Prop
 convertParsedExpression [] ps = head ps
 convertParsedExpression (c:cs) ps
     | isOperator c = convertParsedExpression cs (constructProp c ps)
+    | c == 'T' = convertParsedExpression cs (Const True : ps)
+    | c == 'F' = convertParsedExpression cs (Const False : ps)
     | otherwise = convertParsedExpression cs (Var c : ps)
