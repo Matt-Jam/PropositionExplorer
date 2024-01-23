@@ -1,4 +1,6 @@
 import Data.Char (isAlpha)
+import Data.List (sort)
+
 data PropConstructors = UnaryFunction (Prop -> Prop) | BinaryFunction (Prop -> Prop -> Prop)
 type Stack a = [a]
 data Prop = Const Bool
@@ -8,7 +10,14 @@ data Prop = Const Bool
             | Imply Prop Prop
             | Or Prop Prop
             | Equiv Prop Prop
-            deriving (Eq, Show)
+            deriving (Show)
+
+instance Eq Prop where 
+  (==) p1 p2 
+    | sort (rmdups (vars p1)) /= sort (rmdups (vars p2)) = False
+    | truthTable p1 /= truthTable p2 = False 
+    | otherwise = True
+    
 
 type Assoc k v = [(k,v)]
 type Subst = Assoc Char Bool
@@ -43,20 +52,28 @@ reduce p
 simplify :: Prop -> Prop
 simplify (Const b) = Const b
 simplify (Var x) =  Var x
+
 simplify (Not (Not p)) = simplify p
 simplify (Not (Const True)) = Const False
 simplify (Not (Const False)) = Const True
+simplify (Not p) = Not (simplify p)
+
 simplify (And (Const True) p) = simplify p
 simplify (And p (Const True)) =  simplify p
-simplify (Or p (Const False)) = simplify p
-simplify (Or (Const False) p) = simplify p
 simplify (And (Const False) p) = Const False
 simplify (And p (Const False)) =  Const False
+simplify (And p p')
+    | p == p' = simplify p 
+    | otherwise = And (simplify p) (simplify p')
+
 simplify (Or p (Const True)) = Const True
 simplify (Or (Const True) p) = Const True
-simplify (Not p) = Not (simplify p)
-simplify (And p p') = And (simplify p) (simplify p')
-simplify (Or p p') = Or (simplify p) (simplify p')
+simplify (Or p (Const False)) = simplify p
+simplify (Or (Const False) p) = simplify p
+simplify (Or p p')
+    | p == p' = simplify p
+    | otherwise = Or (simplify p) (simplify p')
+
 simplify (Imply p p') = Imply (simplify p) (simplify p')
 simplify (Equiv p p') = Equiv (simplify p) (simplify p')
 
@@ -99,7 +116,7 @@ isContradiction p = not (or [eval s p | s <- substs p])
 
 truthTable :: Prop -> [([Bool],Bool)]
 truthTable p = [(i,eval (zip l i) p)|i<-bools (length l)]
-                where l = rmdups (vars p)
+                where l = sort (rmdups (vars p))
 
 isOperator :: Char -> Bool
 isOperator c = any (\(k,v) -> k == c) operators
