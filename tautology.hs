@@ -1,3 +1,4 @@
+module Tautology where
 import Data.Char (isAlpha)
 import Data.List (sort)
 
@@ -27,6 +28,19 @@ type Subst = Assoc Char Bool
 
 prettyPrintMap :: (Show k, Show v) => Assoc k v -> String
 prettyPrintMap = foldl (\acc x -> acc ++ show x ++ "\n") ""
+
+pptruthTableHeading :: Prop -> String
+pptruthTableHeading p = foldl (\acc x -> acc ++ "<th>" ++ [x] ++ "</th>" ) "<tr>" (sort (rmdups (vars p))) ++ "<th>Result</th></tr>"
+
+pptruthTableBody :: Assoc [Bool] Bool -> String
+pptruthTableBody = foldl (\acc x -> acc ++ pptruthTableRow x) ""
+
+pptruthTableRow :: ([Bool],Bool) -> String
+pptruthTableRow (bs,r) = foldl (\acc x -> acc ++ "<td>" ++ show x ++ "</td>") "<tr>" bs ++ "<td>" ++ show r ++ "</td></tr>"
+
+prettyPrintTruthTable :: Prop -> String
+prettyPrintTruthTable p = "<table>" ++ pptruthTableHeading p ++ pptruthTableBody t ++ "</table"
+    where t = truthTable p
 operatorMapping :: Assoc Char PropConstructors
 operatorMapping = [('+',BinaryFunction Or),('*', BinaryFunction And),('-',UnaryFunction Not)]
 
