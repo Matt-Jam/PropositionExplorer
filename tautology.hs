@@ -12,16 +12,21 @@ data Prop = Const Bool
             | Equiv Prop Prop
             deriving (Show)
 
-instance Eq Prop where 
-  (==) p1 p2 
+instance Eq Prop where
+  (==) p1 p2
     | sort (rmdups (vars p1)) /= sort (rmdups (vars p2)) = False
-    | truthTable p1 /= truthTable p2 = False 
+    | truthTable p1 /= truthTable p2 = False
     | otherwise = True
-    
+
+
 
 type Assoc k v = [(k,v)]
+
 type Subst = Assoc Char Bool
 
+
+prettyPrintMap :: (Show k, Show v) => Assoc k v -> String
+prettyPrintMap = foldl (\acc x -> acc ++ show x ++ "\n") ""
 operatorMapping :: Assoc Char PropConstructors
 operatorMapping = [('+',BinaryFunction Or),('*', BinaryFunction And),('-',UnaryFunction Not)]
 
@@ -43,9 +48,9 @@ find k a = head [v | (k',v) <- a, k == k']
 p1 :: Prop
 p1 = And (Const True) (Or (Const False) (Not (Not (Var 'c'))))
 
-reduce :: Prop -> Prop 
-reduce p 
-    | isTaut p = Const True 
+reduce :: Prop -> Prop
+reduce p
+    | isTaut p = Const True
     | isContradiction p = Const False
     | otherwise = simplify p
 
@@ -63,7 +68,7 @@ simplify (And p (Const True)) =  simplify p
 simplify (And (Const False) p) = Const False
 simplify (And p (Const False)) =  Const False
 simplify (And p p')
-    | p == p' = simplify p 
+    | p == p' = simplify p
     | otherwise = And (simplify p) (simplify p')
 
 simplify (Or p (Const True)) = Const True
@@ -111,10 +116,10 @@ substs p = map (zip l) (bools (length l))
 isTaut :: Prop -> Bool
 isTaut p = and [eval s p | s <- substs p]
 
-isContradiction :: Prop -> Bool 
+isContradiction :: Prop -> Bool
 isContradiction p = not (or [eval s p | s <- substs p])
 
-truthTable :: Prop -> [([Bool],Bool)]
+truthTable :: Prop -> Assoc [Bool] Bool
 truthTable p = [(i,eval (zip l i) p)|i<-bools (length l)]
                 where l = sort (rmdups (vars p))
 
@@ -158,3 +163,6 @@ convertParsedExpression (c:cs) ps
     | c == 'T' = convertParsedExpression cs (Const True : ps)
     | c == 'F' = convertParsedExpression cs (Const False : ps)
     | otherwise = convertParsedExpression cs (Var c : ps)
+
+processTextExpression :: String -> Prop
+processTextExpression s = convertParsedExpression (reverse $ parseExpression s [] []) []
