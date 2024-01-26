@@ -29,7 +29,7 @@ data PropInput = PropInput
     deriving Show
 
 getHomeR :: Handler Html
-getHomeR = defaultLayout
+getHomeR = defaultLayout 
     [whamlet|
             <form action=@{InputR}>
                 <h3>
@@ -43,7 +43,8 @@ getInputR :: Handler Html
 getInputR = do
     prop <- runInputGet $ PropInput
                 <$> ireq textField "str"
-    defaultLayout
+    defaultLayout $ do
+        let p = processTextExpression (unpack $ str prop)
         [whamlet|
             <form action=@{InputR}>
                 <h3>
@@ -54,12 +55,13 @@ getInputR = do
                 <h3>
                     Simplified expression:
                 <p>
-                    #{show $ processTextExpression (unpack $ str prop)}
+                    #{show p }
                 <h3>
                     Truth table: 
                 <pre>
-                    #{ preEscapedToMarkup (prettyPrintTruthTable $ processTextExpression (unpack $ str prop))}
+                    #{preEscapedToMarkup (prettyPrintTruthTable p)}
         |]
+        
 
 main :: IO ()
 main = warp 3000 App

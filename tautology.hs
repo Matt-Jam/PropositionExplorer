@@ -11,7 +11,16 @@ data Prop = Const Bool
             | Imply Prop Prop
             | Or Prop Prop
             | Equiv Prop Prop
-            deriving (Show)
+
+instance Show Prop where
+    show (Const b) = show b
+    show (Var c) = [c]
+    show (Not p) = "(-" ++ show p ++ ")"
+    show (And p p') = "(" ++ show p ++ "*" ++ show p' ++ ")"
+    show (Or p p') = "(" ++ show p ++ "+" ++ show p' ++ ")"
+    show (Imply p p') = "(" ++ show p ++ "=>" ++ show p' ++ ")"
+    show (Equiv p p') = "(" ++ show p ++ "<=>" ++ show p' ++ ")"
+
 
 instance Eq Prop where
   (==) p1 p2
