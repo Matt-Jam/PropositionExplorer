@@ -18,7 +18,8 @@ mkYesod "App" [parseRoutes|
 /input InputR GET
 |]
 
-instance Yesod App
+instance Yesod App where 
+    approot _ = ApprootStatic "http://mattjam.me"
 
 instance RenderMessage App FormMessage where
     renderMessage _ _ = defaultFormMessage
