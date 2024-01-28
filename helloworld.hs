@@ -86,7 +86,7 @@ getInputR = do
                         <td>F
                     <tr>
                         <td> Variable 
-                        <td> Single character
+                        <td> A character
                     <tr>
                         <td> And
                         <td>*
