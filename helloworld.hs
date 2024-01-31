@@ -19,7 +19,7 @@ mkYesod "App" [parseRoutes|
 |]
 
 instance Yesod App where 
-    approot = ApprootStatic "http://mattjam.me"
+    approot = ApprootStatic "https://mattjam.me"
 
 instance RenderMessage App FormMessage where
     renderMessage _ _ = defaultFormMessage
