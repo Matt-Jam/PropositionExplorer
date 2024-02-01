@@ -10,6 +10,7 @@ import Control.Applicative
 import Data.Text (Text, unpack)
 import Yesod
 import Tautology (prettyPrintMap, processTextExpression, truthTable, prettyPrintTruthTable)
+import Network.Wai.Handler.WarpTLS (runTLS, tlsSettings)
 
 data App = App
 
@@ -78,6 +79,6 @@ getInputR = do
         |]
 
 main :: IO ()
-main = warpTLS tlsSettings App -- Use warpTLS for HTTPS
-  where
-    tlsSettings = tlsSettings "/etc/nginx/ssl/mattjam_me.crt" "/etc/nginx/ssl/mattjam.me.key"
+main = do
+    let tlsSettings' = tlsSettings "/etc/nginx/ssl/mattjam_me.crt" "/etc/nginx/ssl/mattjam.me.key"
+    runTLS tlsSettings' $ warp 3000 App 
