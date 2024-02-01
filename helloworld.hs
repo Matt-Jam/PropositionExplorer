@@ -80,5 +80,5 @@ getInputR = do
 
 main :: IO ()
 main = do
-    let tlsSettings' = tlsSettings "/etc/nginx/ssl/mattjam_me.crt" "/etc/nginx/ssl/mattjam.me.key"
+    tlsSettings' <- tlsSettings "/etc/nginx/ssl/mattjam_me.crt" "/etc/nginx/ssl/mattjam.me.key"
     runTLS tlsSettings' $ warp 3000 App 
