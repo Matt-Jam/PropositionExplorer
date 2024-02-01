@@ -3,13 +3,13 @@
 {-# LANGUAGE QuasiQuotes           #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
+
 module HelloWorld where
-import           Control.Applicative
-import           Data.Text           (Text, unpack)
-import           Yesod
+
+import Control.Applicative
+import Data.Text (Text, unpack)
+import Yesod
 import Tautology (prettyPrintMap, processTextExpression, truthTable, prettyPrintTruthTable)
-
-
 
 data App = App
 
@@ -19,7 +19,7 @@ mkYesod "App" [parseRoutes|
 |]
 
 instance Yesod App where 
-    approot = ApprootStatic "http://mattjam.me"
+    approot = ApprootStatic "https://mattjam.me" -- Update to use HTTPS
 
 instance RenderMessage App FormMessage where
     renderMessage _ _ = defaultFormMessage
@@ -32,41 +32,36 @@ data PropInput = PropInput
 base :: Widget
 base = [whamlet|
 <form action=@{InputR}>
-                <h3>
-                    Instructions 
-                <p>
-                    Input a valid boolean expression using the following key
-                <table>
-                    <tr>
-                        <td>True
-                        <td>T
-                    <tr>
-                        <td>False
-                        <td>F
-                    <tr>
-                        <td> Variable 
-                        <td> Single character
-                    <tr>
-                        <td> And
-                        <td>*
-                    <tr>
-                        <td> Or
-                        <td> +
-                    <tr>
-                        <td> Not
-                        <td> -
-                <p>
-                    Example: (a+b)*(-c)
-                <h3>
-                    Input:
-                <p>
-                    <input type=text name=str>
-                    <input type=submit value="Process">
-    |]
-    
+    <h3>Instructions 
+    <p>Input a valid boolean expression using the following key
+    <table>
+        <tr>
+            <td>True
+            <td>T
+        <tr>
+            <td>False
+            <td>F
+        <tr>
+            <td>Variable 
+            <td>Single character
+        <tr>
+            <td>And
+            <td>*
+        <tr>
+            <td>Or
+            <td>+
+        <tr>
+            <td>Not
+            <td>-
+    <p>Example: (a+b)*(-c)
+    <h3>Input:
+    <p>
+        <input type=text name=str>
+        <input type=submit value="Process">
+|]
+
 getHomeR :: Handler Html
 getHomeR = defaultLayout base
-
 
 getInputR :: Handler Html
 getInputR = do
@@ -76,15 +71,13 @@ getInputR = do
         base 
         let p = processTextExpression (unpack $ str prop)
         [whamlet|
-                    Simplified expression:
-                <p>
-                    #{show p }
-                <h3>
-                    Truth table: 
-                <pre>
-                    #{preEscapedToMarkup (prettyPrintTruthTable p)}
+            Simplified expression:
+            <p>#{show p }
+            <h3>Truth table: 
+            <pre>#{preEscapedToMarkup (prettyPrintTruthTable p)}
         |]
-        
 
 main :: IO ()
-main = warp 3000 App
+main = warpTLS tlsSettings App -- Use warpTLS for HTTPS
+  where
+    tlsSettings = tlsSettings "/etc/nginx/ssl/mattjam_me.crt" "/etc/nginx/ssl/mattjam.me.key"
